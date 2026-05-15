@@ -33,7 +33,12 @@ jobs:
         run: npm ci
 
       - name: Build distributable
-        run: npm run dist
+        run: |
+  if [ "$RUNNER_OS" = "macOS" ]; then
+    npx electron-builder --mac dmg --x64 --arm64
+  else
+    npm run dist
+  fi
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
