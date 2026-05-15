@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tech Frontiers Pre-Talk Grader</title>
+  <style>
+    body { margin: 0; font-family: Arial, sans-serif; color: #172033; background: #f6f7fb; }
+    .layout { display: grid; grid-template-columns: 320px 1fr; min-height: 100vh; }
+    aside { background: #101828; color: white; padding: 24px; }
+    main { padding: 28px; }
+    h1 { font-size: 24px; margin-top: 0; }
+    h2 { font-size: 18px; margin-top: 28px; }
+    label { display: block; font-weight: 700; margin: 14px 0 6px; }
+    input, select { width: 100%; padding: 10px; border: 1px solid #cfd4dc; border-radius: 8px; box-sizing: border-box; background: white; }
+    .calibration-note { background: #eef2ff; border: 1px solid #c7d2fe; padding: 10px; border-radius: 10px; color: #3730a3; margin-top: 8px; line-height: 1.4; }
+    button { padding: 10px 14px; margin-top: 8px; border: 0; border-radius: 8px; cursor: pointer; font-weight: 700; }
+    .primary { background: #2563eb; color: white; }
+    .secondary { background: #e5e7eb; color: #111827; }
+    .card { background: white; border-radius: 16px; padding: 20px; box-shadow: 0 8px 24px rgba(16, 24, 40, 0.08); margin-bottom: 18px; }
+    .small { font-size: 13px; color: #475467; }
+    .path { font-size: 12px; overflow-wrap: anywhere; color: #344054; }
+    .warning { background: #fffbeb; border: 1px solid #fde68a; padding: 12px; border-radius: 10px; color: #92400e; }
+    .summary-grid { display: grid; grid-template-columns: repeat(4, minmax(90px, 1fr)); gap: 10px; margin: 12px 0; }
+    .summary-box { background: #f3f4f6; border: 1px solid #e5e7eb; border-radius: 10px; padding: 10px; }
+    .summary-box strong { display: block; font-size: 20px; color: #111827; }
+    progress { width: 100%; height: 18px; }
+    .log-toolbar { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 10px; }
+    .log { background: #0b1220; color: #dbeafe; border-radius: 12px; padding: 10px; height: 380px; overflow: auto; font-family: Consolas, 'Courier New', monospace; font-size: 12px; }
+    .log-row { display: grid; grid-template-columns: 86px 88px 190px 1fr; gap: 8px; align-items: start; padding: 8px; margin-bottom: 5px; border-radius: 8px; }
+    .log-row.info { background: #1e3a5f; color: white; }
+    .log-row.success { background: #15803d; color: white; }
+    .log-row.warning { background: #f59e0b; color: white; border: 1px solid #fde68a; }
+    .log-row.error { background: #dc2626; color: white; border: 1px solid #fecaca; }
+    .log-row.done { background: #1e3a8a; color: white; }
+    .log-row.warning .log-type,
+    .log-row.warning .log-message,
+    .log-row.warning .log-student,
+    .log-row.warning .log-time,
+    .log-row.error .log-type,
+    .log-row.error .log-message,
+    .log-row.error .log-student,
+    .log-row.error .log-time,
+    .log-row.info .log-type,
+    .log-row.info .log-message,
+    .log-row.info .log-student,
+    .log-row.info .log-time,
+    .log-row.success .log-type,
+    .log-row.success .log-message,
+    .log-row.success .log-student,
+    .log-row.success .log-time,
+    .log-row.done .log-type,
+    .log-row.done .log-message,
+    .log-row.done .log-student,
+    .log-row.done .log-time { color: white; }
+    .log-type { font-weight: 800; }
+    .log-student, .log-message { overflow-wrap: anywhere; }
+    .api-help { margin-top: 24px; padding-top: 18px; border-top: 1px solid rgba(255,255,255,0.18); font-size: 13px; line-height: 1.4; }
+    .api-help h2 { color: white; font-size: 16px; margin-bottom: 10px; }
+    .api-help ul { padding-left: 18px; }
+    .api-help li { margin-bottom: 6px; }
+  </style>
+</head>
+<body>
+  <div class="layout">
+    <aside>
+      <h1>Tech Frontiers<br/>Pre-Talk Grader</h1>
+      <p>Grades pre-talk reflection essays using the approved 40-point rubric and exports a Canvas-style workbook.</p>
+      <p class="small">Instructor remains final authority. Review AI-generated scores before posting.</p>
+      <div class="api-help">
+        <h2>Obtain a UF NaviGator API Key</h2>
+        <p>Go to the UF NaviGator portal:<br/>https://api.ai.it.ufl.edu/ui</p>
+        <p>Log in with your UF credentials.</p>
+        <p>Click <strong>Create New Key</strong> in the upper-left area near the sidebar.</p>
+        <p>Fill out the form as follows:</p>
+        <ul>
+          <li><strong>Owned By:</strong> You</li>
+          <li><strong>Team:</strong> navigator-toolkit</li>
+          <li><strong>Key Name:</strong> Choose a descriptive name such as tf-debriefing</li>
+          <li><strong>Models:</strong> granite-3.3-8b-instruct</li>
+          <li><strong>Key Type:</strong> AI APIs</li>
+        </ul>
+        <p><strong>Important API Key Security Information</strong></p>
+        <p>Save your API key in a safe location. You may not be able to view the full key again after leaving the page.</p>
+        <p>Never share your API key with anyone.</p>
+      </div>
+
+    </aside>
+    <main>
+      <div class="card">
+        <h2>1. Select Inputs</h2>
+        <label>Folder with Students' submissions</label>
+        <button class="secondary" id="folderBtn">Choose Folder</button>
+        <div class="path" id="folderPath"></div>
+        <label>Canvas SpeedGrader Rubric Scores file</label>
+        <button class="secondary" id="csvBtn">Choose CSV</button>
+        <div class="path" id="csvPath"></div>
+        <label>Output Excel file</label>
+        <button class="secondary" id="outBtn">Choose Output</button>
+        <div class="path" id="outPath"></div>
+      </div>
+      <div class="card">
+        <h2>2. Settings</h2>
+        <label>Base URL</label><input id="baseUrl" />
+        <label>Model</label><input id="model" />
+        <label>API Key</label><input id="apiKey" type="password" placeholder="Paste your key here. It will be saved locally when you click Save." />
+        <label>Parallel grading jobs</label>
+        <input id="concurrencyLimit" type="number" min="1" max="5" value="3" />
+        <div class="calibration-note">Use 3 for safest UF NaviGator performance. Use 4 or 5 only if the API is responding reliably.</div>
+        <label>Grading calibration</label>
+        <select id="gradingCalibration">
+          <option value="supportive" selected>Supportive, summer course: good enough should usually be Excellent</option>
+          <option value="balanced">Balanced: standard rubric interpretation</option>
+          <option value="strict">Strict: reserve Excellent for very strong, detailed submissions</option>
+        </select>
+        <div class="calibration-note" id="calibrationNote">Supportive mode: appropriate for a chill summer pre-talk assignment. Students have not seen the talk yet, so thoughtful preparation and reasonable engagement should usually earn Excellent-level points.</div>
+        <button class="secondary" id="saveSettings">Save</button>
+      </div>
+      <div class="card">
+        <h2>3. Run</h2>
+        <div class="warning">This tool supports .docx, .pdf, .txt, and .md files. It matches students by filename and roster name, then creates sheets for rubric scores, all questions, top 10 questions, and processing log.</div>
+        <button class="primary" id="runBtn">Grade Folder</button>
+      </div>
+      <div class="card">
+        <h2>Progress</h2>
+        <progress id="gradingProgress" value="0" max="1"></progress>
+        <div class="summary-grid">
+          <div class="summary-box"><strong id="processedCount">0</strong>Processed</div>
+          <div class="summary-box"><strong id="successCount">0</strong>Successful</div>
+          <div class="summary-box"><strong id="warningCount">0</strong>Warnings</div>
+          <div class="summary-box"><strong id="errorCount">0</strong>Errors</div>
+        </div>
+        <div class="log-toolbar">
+          <span class="small">Detailed grading console</span>
+          <button class="secondary" id="clearLog">Clear Log</button>
+        </div>
+        <div class="log" id="log"></div>
+      </div>
+    </main>
+  </div>
+<script src="renderer.js"></script>
+</body>
+</html>

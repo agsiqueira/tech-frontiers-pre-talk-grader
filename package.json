@@ -1,0 +1,46 @@
+{
+  "name": "pre-talk-grading-support-tool",
+  "version": "1.0.0",
+  "description": "Electron grading support tool for Tech Frontiers pre-talk reflection essays.",
+  "main": "src/main.js",
+  "scripts": {
+    "start": "electron .",
+    "pack": "electron-builder --dir",
+    "dist": "electron-builder"
+  },
+  "dependencies": {
+    "@electron/remote": "^2.1.2",
+    "axios": "^1.7.9",
+    "csv-parse": "^5.6.0",
+    "csv-stringify": "^6.5.2",
+    "docx": "^9.1.0",
+    "electron-store": "^8.2.0",
+    "mammoth": "^1.8.0",
+    "pdf-parse": "^1.1.1",
+    "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "electron": "^33.2.1",
+    "electron-builder": "^25.1.8"
+  },
+  "build": {
+    "appId": "edu.uf.techfrontiers.pretalkgrader",
+    "productName": "Tech Frontiers Pre-Talk Grader",
+    "files": [
+      "src/**/*",
+      "assets/**/*",
+      "package.json"
+    ],
+    "win": {
+      "target": "nsis"
+    },
+    "mac": {
+      "target": [
+        "dmg"
+      ],
+      "category": "public.app-category.education"
+    }
+  },
+  "author": "Alexandre Siqueira",
+  "license": "UNLICENSED"
+}

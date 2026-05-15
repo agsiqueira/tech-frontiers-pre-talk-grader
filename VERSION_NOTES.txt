@@ -1,0 +1,4 @@
+Latest full project build.
+- Includes Supportive / Summer Course full-marks calibration.
+- Includes lenient Questions for the Speaker behavior.
+- Includes clear deduction explanations for every non-full rubric score.
