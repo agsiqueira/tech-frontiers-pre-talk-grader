@@ -2,7 +2,10 @@ const { app, BrowserWindow, ipcMain, dialog } = require('electron');
 const path = require('path');
 const Store = require('electron-store');
 const { gradeFolder } = require('./grader');
-const store = new Store();
+const store = new Store({
+  name: 'user-settings',
+  cwd: app.getPath('userData')
+});
 
 function createWindow() {
   const win = new BrowserWindow({
