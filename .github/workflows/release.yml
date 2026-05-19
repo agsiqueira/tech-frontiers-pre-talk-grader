@@ -1,74 +1,57 @@
-name: Build and Release
+name: Build and Release Installers
 
 on:
   push:
     tags:
-      - "v*.*.*"
-  workflow_dispatch:
+      - 'v*'
 
 permissions:
   contents: write
 
 jobs:
   build:
-    name: Build ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: windows-latest
+            artifact_name: windows
+          - os: macos-13
+            artifact_name: macos-intel
+          - os: macos-latest
+            artifact_name: macos-arm
+
     runs-on: ${{ matrix.os }}
 
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [windows-2025, macos-latest]
-
     steps:
-      - name: Check out repository
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up Node.js
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 24
-          cache: npm
+          node-version: 20
 
       - name: Install dependencies
-        run: npm ci
+        run: npm install
 
       - name: Build distributable
         run: |
-  if [ "$RUNNER_OS" = "macOS" ]; then
-    npx electron-builder --mac dmg --x64 --arm64
-  else
-    npm run dist
-  fi
+          if [ "$RUNNER_OS" = "macOS" ]; then
+            npx electron-builder --mac dmg --x64 --arm64
+          else
+            npm run dist
+          fi
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
-      - name: Upload build artifacts
-        uses: actions/upload-artifact@v4
-        with:
-          name: tech-frontiers-pre-talk-grader-${{ matrix.os }}
-          path: |
-            dist/*Setup*.exe
-            dist/*.dmg
-          if-no-files-found: warn
-
-  release:
-    name: Create GitHub Release
-    needs: build
-    runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/')
-
-    steps:
-      - name: Download build artifacts
-        uses: actions/download-artifact@v4
-        with:
-          path: release-artifacts
-          merge-multiple: true
-
-      - name: Create release and upload installers
+      - name: Upload release artifacts
         uses: softprops/action-gh-release@v2
         with:
           files: |
-            release-artifacts/*Setup*.exe
-            release-artifacts/*.dmg
-          generate_release_notes: true
+            dist/*.exe
+            dist/*.dmg
+            dist/*.zip
+            dist/latest*.yml
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
