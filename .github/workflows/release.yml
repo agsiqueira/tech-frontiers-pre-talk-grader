@@ -1,4 +1,4 @@
-name: Build and Release Installers
+name: Build and Release Installersv2
 
 on:
   push:
