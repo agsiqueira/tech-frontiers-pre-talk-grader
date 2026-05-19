@@ -14,11 +14,13 @@ jobs:
       matrix:
         include:
           - os: windows-latest
-            artifact_name: windows
+            platform: windows
           - os: macos-13
-            artifact_name: macos-intel
+            platform: mac-intel
+            mac_arch: x64
           - os: macos-latest
-            artifact_name: macos-arm
+            platform: mac-arm
+            mac_arch: arm64
 
     runs-on: ${{ matrix.os }}
 
@@ -34,14 +36,16 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      - name: Build distributable
-        shell: bash
-        run: |
-          if [ "$RUNNER_OS" = "macOS" ]; then
-            npx electron-builder --mac dmg --x64 --arm64
-          else
-            npm run dist
-          fi
+      - name: Build Windows distributable
+        if: matrix.platform == 'windows'
+        run: npm run dist
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+      - name: Build Mac distributable
+        if: startsWith(matrix.platform, 'mac')
+        run: npx electron-builder --mac dmg --${{ matrix.mac_arch }}
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
