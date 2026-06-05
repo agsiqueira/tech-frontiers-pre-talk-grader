@@ -205,7 +205,7 @@ ${parsed.essayOnly.slice(0, 22000)}
 """`;
 }
 
-async function callModel({ apiKey, baseUrl, model, studentName, essayText, gradingCalibration }) {
+async function callOpenAICompatibleModel({ apiKey, baseUrl, model, studentName, essayText, gradingCalibration }) {
   const url = `${baseUrl.replace(/\/$/, '')}/chat/completions`;
   const payload = {
     model,
@@ -220,6 +220,39 @@ async function callModel({ apiKey, baseUrl, model, studentName, essayText, gradi
     timeout: 120000
   });
   return safeJsonFromText(response.data.choices[0].message.content);
+}
+
+async function callGeminiModel({ apiKey, baseUrl, model, studentName, essayText, gradingCalibration }) {
+  const geminiBaseUrl = baseUrl || 'https://generativelanguage.googleapis.com/v1beta';
+  const url = `${geminiBaseUrl.replace(/\/$/, '')}/models/${model}:generateContent`;
+  const payload = {
+    systemInstruction: {
+      parts: [
+        { text: 'Return strict JSON only. Use exactly the requested criterion keys. Each criterion must include numeric points, strengths, deductions, and a comment explaining that score. If points are deducted, explain why. Apply the selected grading calibration exactly. You support grading, but the instructor remains final authority.' }
+      ]
+    },
+    contents: [
+      { role: 'user', parts: [{ text: buildPrompt(studentName, essayText, gradingCalibration) }] }
+    ],
+    generationConfig: {
+      temperature: getCalibrationPolicy(gradingCalibration).temperature,
+      responseMimeType: 'application/json'
+    }
+  };
+  const response = await axios.post(url, payload, {
+    headers: { 'x-goog-api-key': apiKey, 'Content-Type': 'application/json' },
+    timeout: 120000
+  });
+  const text = response.data?.candidates?.[0]?.content?.parts?.map(part => part.text || '').join('') || '';
+  return safeJsonFromText(text);
+}
+
+async function callModel({ aiProvider = 'openai', apiKey, baseUrl, model, studentName, essayText, gradingCalibration }) {
+  const provider = String(aiProvider || 'openai').toLowerCase();
+  if (provider === 'gemini') {
+    return callGeminiModel({ apiKey, baseUrl, model, studentName, essayText, gradingCalibration });
+  }
+  return callOpenAICompatibleModel({ apiKey, baseUrl, model, studentName, essayText, gradingCalibration });
 }
 
 function clampScore(value, max) {
@@ -648,7 +681,7 @@ async function runWithConcurrency(items, limit, worker) {
   await Promise.all(workers);
 }
 
-async function gradeFolder({ folderPath, rosterCsvPath, outputPath, apiKey, baseUrl, model, gradingCalibration = 'supportive', concurrencyLimit = 3, onProgress }) {
+async function gradeFolder({ folderPath, rosterCsvPath, outputPath, apiKey, baseUrl, model, aiProvider = 'openai', gradingCalibration = 'supportive', concurrencyLimit = 3, onProgress }) {
   const roster = readRoster(rosterCsvPath);
   const files = fs.readdirSync(folderPath).filter(f => ['.docx', '.pdf', '.txt', '.md'].includes(path.extname(f).toLowerCase()));
   const results = [];
@@ -691,7 +724,7 @@ async function gradeFolder({ folderPath, rosterCsvPath, outputPath, apiKey, base
     warning: 0,
     error: 0,
     student: 'Run',
-    message: `Found ${files.length} supported submission file(s). Grading calibration: ${getCalibrationPolicy(gradingCalibration).label}. Parallel grading jobs: ${safeConcurrencyLimit}.`
+    message: `Found ${files.length} supported submission file(s). AI provider: ${String(aiProvider || 'openai')}. Model: ${model}. Grading calibration: ${getCalibrationPolicy(gradingCalibration).label}. Parallel grading jobs: ${safeConcurrencyLimit}.`
   });
 
   await runWithConcurrency(files, safeConcurrencyLimit, async (fileName, i) => {
@@ -721,7 +754,7 @@ async function gradeFolder({ folderPath, rosterCsvPath, outputPath, apiKey, base
 
       captureLog({ index: i + 1, total: files.length, student: rosterRow['Student Name'], fileName, status: 'grading', message: `${i + 1}/${files.length}: Sending to AI for rubric grading`, ...stats });
 
-      const rawGrade = await callModel({ apiKey, baseUrl, model, studentName: rosterRow['Student Name'], essayText, gradingCalibration });
+      const rawGrade = await callModel({ aiProvider, apiKey, baseUrl, model, studentName: rosterRow['Student Name'], essayText, gradingCalibration });
       const grade = normalizeGrade(rawGrade, parsed, rosterRow['Student Name'], gradingCalibration);
 
       if (!grade.extractedHeader) grade.extractedHeader = parsed.header;

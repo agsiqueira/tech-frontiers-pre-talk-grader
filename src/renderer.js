@@ -1,4 +1,4 @@
-const state = { folderPath: '', rosterCsvPath: '', outputPath: '', gradingCalibration: 'supportive', processed: 0, success: 0, warning: 0, error: 0, total: 1 };
+const state = { folderPath: '', rosterCsvPath: '', outputPath: '', aiProvider: 'openai', gradingCalibration: 'supportive', processed: 0, success: 0, warning: 0, error: 0, total: 1 };
 const $ = id => document.getElementById(id);
 
 function escapeHtml(value) {
@@ -38,13 +38,38 @@ function resetRunStats(total = 1) {
   updateSummary();
 }
 
+function updateAiProviderNote() {
+  const provider = $('aiProvider').value || 'openai';
+  state.aiProvider = provider;
+  if (provider === 'gemini') {
+    $('aiProviderNote').textContent = 'Google Gemini selected. Use a Gemini API key, the Gemini API base URL, and a Gemini model such as gemini-2.5-flash.';
+    if (!$('baseUrl').value || $('baseUrl').value.includes('api.ai.it.ufl.edu')) {
+      $('baseUrl').value = 'https://generativelanguage.googleapis.com/v1beta';
+    }
+    if (!$('model').value || $('model').value === 'granite-3.3-8b-instruct') {
+      $('model').value = 'gemini-2.5-flash';
+    }
+  } else {
+    $('aiProviderNote').textContent = 'Current AI Service / UF NaviGator selected. Use your OpenAI-compatible base URL and model name.';
+    if (!$('baseUrl').value || $('baseUrl').value.includes('generativelanguage.googleapis.com')) {
+      $('baseUrl').value = 'https://api.ai.it.ufl.edu/v1';
+    }
+    if (!$('model').value || $('model').value.startsWith('gemini-')) {
+      $('model').value = 'granite-3.3-8b-instruct';
+    }
+  }
+}
+
 window.graderApi.loadSettings().then(settings => {
+  $('aiProvider').value = settings.aiProvider || 'openai';
+  state.aiProvider = $('aiProvider').value;
   $('baseUrl').value = settings.baseUrl || '';
   $('model').value = settings.model || '';
   $('apiKey').value = settings.apiKey || '';
   $('gradingCalibration').value = settings.gradingCalibration || 'supportive';
   $('concurrencyLimit').value = settings.concurrencyLimit || 3;
   state.gradingCalibration = $('gradingCalibration').value;
+  updateAiProviderNote();
   updateCalibrationNote();
 });
 
@@ -65,10 +90,12 @@ function updateCalibrationNote() {
   $('calibrationNote').textContent = notes[value] || notes.supportive;
 }
 
+$('aiProvider').onchange = updateAiProviderNote;
 $('gradingCalibration').onchange = updateCalibrationNote;
 
 $('saveSettings').onclick = async () => {
   await window.graderApi.saveSettings({
+    aiProvider: $('aiProvider').value,
     baseUrl: $('baseUrl').value,
     model: $('model').value,
     apiKey: $('apiKey').value,
@@ -102,6 +129,7 @@ $('runBtn').onclick = async () => {
       folderPath: state.folderPath,
       rosterCsvPath: state.rosterCsvPath,
       outputPath: state.outputPath,
+      aiProvider: $('aiProvider').value,
       apiKey: $('apiKey').value,
       baseUrl: $('baseUrl').value,
       model: $('model').value,

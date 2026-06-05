@@ -35,6 +35,7 @@ ipcMain.handle('select-output', async () => {
 });
 
 ipcMain.handle('load-settings', () => store.get('settings', {
+  aiProvider: 'openai',
   baseUrl: 'https://api.ai.it.ufl.edu/v1',
   model: 'granite-3.3-8b-instruct',
   apiKey: '',
